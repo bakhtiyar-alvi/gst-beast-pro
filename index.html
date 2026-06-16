@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GST Compliance Dashboard Pro</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <style>
+        :root {
+            --surface-dark: #090d16;
+            --surface-card: #131c2e;
+            --surface-input: #0b111e;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --purple: #8b5cf6;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #1e293b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--surface-dark); color: var(--text-main); padding: 24px; min-height: 100vh; }
+
+        .workspace-grid { display: grid; grid-template-columns: 360px 1fr; gap: 24px; max-width: 1800px; margin: 0 auto; }
+        
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
+        .panel-card { background-color: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        
+        h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-main); }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
+        input, select, textarea { width: 100%; background-color: var(--surface-input); border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: white; font-size: 0.9rem; transition: border-color 0.2s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; }
+        
+        .split-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .split-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        
+        button { width: 100%; padding: 10px; font-size: 0.9rem; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: #2563eb; }
+        .btn-success { background-color: var(--success); color: #000; }
+        
+        .fy-matrix-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+        .fy-month-block { background-color: var(--surface-input); border: 1px solid var(--border); border-radius: 6px; padding: 8px 4px; text-align: center; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+        .fy-month-block:hover { border-color: var(--text-muted); }
+        .fy-month-block.active-month { border-color: var(--primary); background-color: rgba(59, 130, 246, 0.1); font-weight: bold; }
+        .micro-indicator-row { display: flex; justify-content: center; gap: 6px; margin-top: 4px; font-size: 0.65rem; }
+        .dot-pending { color: var(--danger); }
+        .dot-clean { color: var(--success); }
+
+        .main-window { display: flex; flex-direction: column; gap: 20px; overflow-x: auto; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+        .search-filter { display: flex; gap: 12px; width: 100%; max-width: 600px; }
+
+        .table-container { background-color: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; min-width: 1200px; }
+        th { background-color: rgba(0,0,0,0.2); padding: 14px 16px; color: var(--text-muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        tr:hover td { background-color: rgba(255,255,255,0.01); }
+
+        .credential-tag { font-family: monospace; background: var(--surface-input); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; display: inline-block; margin-top: 4px; border: 1px solid var(--border); }
+        .badge { display: inline-block; padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border-radius: 4px; cursor: pointer; text-align: center; min-width: 100px; user-select: none; transition: opacity 0.2s; }
+        .badge:hover { opacity: 0.8; }
+        .badge-pending { background-color: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+        .badge-filed { background-color: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); }
+        
+        .ledger-box { font-size: 0.75rem; line-height: 1.4; background-color: var(--surface-input); padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
+        .action-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .btn-inline { background: transparent; color: var(--text-muted); font-size: 0.75rem; padding: 4px 8px; border: 1px solid var(--border); width: auto; border-radius: 4px; transition: all 0.2s; }
+        .btn-inline:hover { color: white; border-color: var(--text-muted); }
+        .btn-print { border-color: var(--primary); color: var(--primary); }
+        .btn-print:hover { background: rgba(59, 130, 246, 0.1); }
+        .btn-whatsapp { border-color: var(--success); color: var(--success); }
+        .btn-whatsapp:hover { background: rgba(16, 185, 129, 0.1); }
+        .btn-waiver { border-color: var(--warning); color: var(--warning); font-size: 0.7rem; padding: 2px 6px; margin-top: 4px; }
+        .btn-waiver:hover { background: rgba(245, 158, 11, 0.1); }
+
+        .date-edit { background-color: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; padding: 2px 4px; font-size: 0.7rem; width: 110px; margin-top: 4px; outline: none; }
+        .date-edit:focus { border-color: var(--primary); }
+        .date-edit::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        .recon-alert { font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+
+        .summary-banner { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+        .summary-card { background-color: var(--surface-card); border-left: 4px solid var(--primary); padding: 16px; border-radius: 8px; border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+
+        @media (max-width: 1200px) {
+            .workspace-grid { grid-template-columns: 1fr; }
+            .sidebar { flex-direction: row; flex-wrap: wrap; }
+            .sidebar > .panel-card { flex: 1 1 300px; }
+        }
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .summary-banner { grid-template-columns: repeat(2, 1fr); }
+            .header-bar { flex-direction: column; align-items: flex-start; }
+            .search-filter { flex-direction: column; width: 100%; max-width: 100%; }
+            .search-filter select { width: 100%; }
+            .sidebar { flex-direction: column; }
+        }
+        @media (max-width: 480px) {
+            .summary-banner { grid-template-columns: 1fr; }
+            .split-3 { grid-template-columns: 1fr; }
+            .split-2 { grid-template-columns: 1fr; }
+        }
+
+        #print-area { display: none; }
+        @media print {
+            body { background: white; color: black; padding: 0; margin: 0; }
+            .workspace-grid { display: none !important; }
+            #print-area { display: block; padding: 40px; font-family: Arial, sans-serif; }
+            .print-header { border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
+            .print-header h1 { margin: 0; font-size: 24px; text-transform: uppercase; }
+            .print-details { display: flex; justify-content: space-between; margin-bottom: 30px; }
+            .print-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .print-table th, .print-table td { border: 1px solid #ccc; padding: 10px; text-align: right; }
+            .print-table th { background: #f0f0f0; text-align: center; }
+            .print-total { font-weight: bold; font-size: 1.1em; background: #e0f2fe !important; }
+            .print-warning { color: #d97706; font-size: 0.9em; margin-top: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="workspace-grid">
+        <div class="sidebar">
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; padding-left: 4px; width: 100%;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="50" height="50">
+                  <defs><linearGradient id="lbg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1e293b" /><stop offset="100%" stop-color="#090d16" /></linearGradient><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6" /><stop offset="100%" stop-color="#8b5cf6" /></linearGradient><linearGradient id="lb1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#60a5fa" /><stop offset="100%" stop-color="#3b82f6" /></linearGradient><linearGradient id="lb2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#a78bfa" /><stop offset="100%" stop-color="#8b5cf6" /></linearGradient><linearGradient id="lchk" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#10b981" /><stop offset="100%" stop-color="#059669" /></linearGradient></defs>
+                  <rect width="512" height="512" rx="120" fill="url(#lbg)" />
+                  <path d="M 256 96 A 160 160 0 1 0 416 256 H 320" fill="none" stroke="url(#lg)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" />
+                  <rect x="156" y="250" width="32" height="86" rx="16" fill="url(#lb1)" />
+                  <rect x="208" y="190" width="32" height="146" rx="16" fill="url(#lb2)" />
+                  <rect x="260" y="130" width="32" height="206" rx="16" fill="url(#lb1)" />
+                  <path d="M 170 300 L 240 360 L 390 180" fill="none" stroke="url(#lchk)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 170 300 L 240 360 L 390 180" fill="none" stroke="#6ee7b7" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.8" />
+                </svg>
+                <div>
+                    <h2 style="margin-bottom: 2px; font-size: 1.3rem;">GST Beast Pro</h2>
+                    <div style="font-size: 0.75rem; color: var(--success); font-weight: bold;">Compliance Engine Active</div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <h2>Financial Year Calendar</h2>
+                <div class="form-group">
+                    <label>Select Financial Cycle</label>
+                    <select id="global-fy-select" onchange="handleFYChange()"></select>
+                </div>
+                <div class="fy-matrix-grid" id="fy-calendar-matrix"></div>
+            </div>
+
+            <div class="panel-card">
+                <h2 id="form-title">Client Registration</h2>
+                <input type="hidden" id="editing-client-id" value="">
+                
+                <div class="form-group">
+                    <label>Trade Name</label>
+                    <input type="text" id="client-name" placeholder="Apex Logistics">
+                </div>
+                <div class="split-2">
+                    <div class="form-group">
+                        <label>GSTIN</label>
+                        <input type="text" id="client-gstin" placeholder="15-digit Format" maxlength="15" oninput="validateGSTIN()">
+                        <div id="gstin-error" style="color:var(--danger); font-size:0.75rem; display:none; margin-top:4px;">Invalid GSTIN Format</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Scheme</label>
+                        <select id="client-scheme">
+                            <option value="Monthly" selected>Monthly</option>
+                            <option value="QRMP">QRMP</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="border: 1px dashed var(--border); padding: 8px; border-radius: 6px;">
+                    <label style="color:var(--primary);">Normal Output Liability</label>
+                    <div class="split-3">
+                        <input type="number" id="out-igst" placeholder="IGST" min="0">
+                        <input type="number" id="out-cgst" placeholder="CGST" min="0">
+                        <input type="number" id="out-sgst" placeholder="SGST" min="0">
+                    </div>
+                    <label style="color:var(--danger); margin-top:10px;">RCM Liability (Cash Mandatory)</label>
+                    <div class="split-3">
+                        <input type="number" id="rcm-igst" placeholder="IGST" min="0">
+                        <input type="number" id="rcm-cgst" placeholder="CGST" min="0">
+                        <input type="number" id="rcm-sgst" placeholder="SGST" min="0">
+                    </div>
+                </div>
+
+                <div class="form-group" style="border: 1px dashed var(--success); padding: 8px; border-radius: 6px;">
+                    <label style="color:var(--success);">ITC Claimed This Month (3B)</label>
+                    <div class="split-3">
+                        <input type="number" id="itc-igst" placeholder="IGST" min="0">
+                        <input type="number" id="itc-cgst" placeholder="CGST" min="0">
+                        <input type="number" id="itc-sgst" placeholder="SGST" min="0">
+                    </div>
+                    <label style="margin-top:10px;">Auto-Populated GSTR-2B Limit</label>
+                    <div class="split-3">
+                        <input type="number" id="itc-2b-igst" placeholder="2B IGST" min="0">
+                        <input type="number" id="itc-2b-cgst" placeholder="2B CGST" min="0">
+                        <input type="number" id="itc-2b-sgst" placeholder="2B SGST" min="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Portal Credentials & Month Notes</label>
+                    <div class="split-2" style="margin-bottom:6px;">
+                        <input type="text" id="portal-user" placeholder="Username">
+                        <input type="text" id="portal-pass" placeholder="Password">
+                    </div>
+                    <textarea id="month-notes" rows="2" placeholder="Pending tasks..." style="resize: none;"></textarea>
+                </div>
+
+                <div class="form-group" style="border: 1px dashed var(--purple); padding: 8px; border-radius: 6px;">
+                    <label style="color:var(--purple);">Professional Billing</label>
+                    <div class="split-2">
+                        <div>
+                            <input type="number" id="client-fee" placeholder="Fee Amount (₹)" min="0">
+                        </div>
+                        <div>
+                            <select id="fee-status">
+                                <option value="Due" selected>Payment Due</option>
+                                <option value="Paid">Payment Cleared</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="save-btn" onclick="processClientSubmission()">Save Records</button>
+                <button class="btn-inline" id="cancel-edit-btn" style="margin-top: 6px; display: none; width:100%; text-align:center;" onclick="clearForm()">Cancel Edit</button>
+            </div>
+
+            <div class="panel-card">
+                <h2>Utilities & Cloud Sync</h2>
+                <button class="btn-success" onclick="exportMasterWorkbook()" style="margin-bottom: 8px;">Export CSV</button>
+                <div class="split-2">
+                    <button class="btn-inline" onclick="backupSystemDatabase()" style="color:var(--success); border-color:var(--success);">Backup JSON</button>
+                    <button class="btn-inline" onclick="document.getElementById('import-file-input').click()" style="color:var(--primary); border-color:var(--primary);">Restore JSON</button>
+                </div>
+                <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="restoreSystemDatabase(event)" style="display:none;">
+                
+                <div style="border-top: 1px solid var(--border); margin-top: 15px; padding-top: 15px;">
+                    <label style="color:var(--primary); font-size: 0.85rem; font-weight: bold;">☁️ Google Drive AutoSync</label>
+                    <div class="split-2" style="align-items: center; margin-top: 8px;">
+                        <button class="btn-inline" style="color:var(--primary); border-color:var(--primary);" onclick="initializeGoogleAuth()">Connect Drive</button>
+                        <span id="cloud-status" style="font-size: 0.75rem; text-align: right; color: var(--text-muted);">⚫ Offline</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-window">
+            <div class="summary-banner">
+                <div class="summary-card" style="border-left-color: var(--primary);">
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">ACTIVE CLIENTS</div>
+                    <div id="stat-total" style="font-size: 1.5rem; font-weight: bold; margin-top: 4px;">0</div>
+                </div>
+                <div class="summary-card" style="border-left-color: var(--warning);">
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">R1 / IFF PENDING</div>
+                    <div id="stat-r1" style="font-size: 1.5rem; font-weight: bold; margin-top: 4px; color: var(--warning);">0</div>
+                </div>
+                <div class="summary-card" style="border-left-color: var(--danger);">
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">3B / PMT-06 PENDING</div>
+                    <div id="stat-3b" style="font-size: 1.5rem; font-weight: bold; margin-top: 4px; color: var(--danger);">0</div>
+                </div>
+                <div class="summary-card" style="border-left-color: var(--success);">
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">NET TAX LIABILITY</div>
+                    <div id="stat-cash" style="font-size: 1.5rem; font-weight: bold; margin-top: 4px; color: var(--success);">₹0</div>
+                </div>
+                <div class="summary-card" style="border-left-color: var(--purple);">
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">UNCOLLECTED FEES</div>
+                    <div id="stat-fees" style="font-size: 1.5rem; font-weight: bold; margin-top: 4px; color: var(--purple);">₹0</div>
+                </div>
+            </div>
+
+            <div class="header-bar">
+                <div class="search-filter">
+                    <input type="text" id="search-bar" placeholder="Filter registry..." oninput="renderMasterDashboard()">
+                    <select id="status-filter" onchange="renderMasterDashboard()">
+                        <option value="ALL">All Accounts</option>
+                        <option value="R1_PENDING">Step 1 Pending</option>
+                        <option value="3B_PENDING">Step 2 Pending</option>
+                        <option value="CASH_LIABLE">Cash Deficit Owed</option>
+                        <option value="FEE_DUE">Fee Unpaid</option>
+                    </select>
+                </div>
+                <div style="font-size: 0.9rem; font-weight: bold; background: rgba(255,255,255,0.05); padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border); white-space: nowrap;">
+                    Working View: <span id="current-view-badge" style="color: var(--primary);">--</span>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="master-table">
+                    <thead>
+                        <tr>
+                            <th width="20%">Client Profile</th>
+                            <th width="19%">Liability & RCM</th>
+                            <th width="19%">ITC & 2B Recon</th>
+                            <th width="21%">Filing Workflow & Penalties</th>
+                            <th width="21%">Financials & Operations</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Printable Tax Challan View -->
+    <div id="print-area">
+        <div class="print-header">
+            <h1>GST Tax Computation & Billing Challan</h1>
+            <p>Generated by GST Compliance Pro Engine</p>
+        </div>
+        <div class="print-details">
+            <div>
+                <strong>Client Name:</strong> <span id="print-name">--</span><br>
+                <strong>GSTIN:</strong> <span id="print-gstin">--</span>
+            </div>
+            <div style="text-align: right;">
+                <strong>Tax Period:</strong> <span id="print-period">--</span><br>
+                <strong>Date Generated:</strong> <span id="print-date">--</span>
+            </div>
+        </div>
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th style="text-align:left;">Particulars</th>
+                    <th>IGST (₹)</th>
+                    <th>CGST (₹)</th>
+                    <th>SGST (₹)</th>
+                    <th>Total (₹)</th>
+                </tr>
+            </thead>
+            <tbody id="print-table-body"></tbody>
+        </table>
+        <div class="print-warning">
+            * Note: RCM liabilities are legally required to be discharged strictly via Cash Ledger.<br>
+            * Late fees and interest calculations reflect data entered at the time of print.
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // PASTE YOUR GOOGLE CLIENT ID BELOW
+        // ==========================================
+        const GOOGLE_CLIENT_ID = "1090891293641-vr4iba4fi7sooc58g5rgn69ek6sd9odl.apps.googleusercontent.com";
+        
+        let db = JSON.parse(localStorage.getItem('gst_beast_db')) || [];
+        
+        let gDriveAccessToken = null;
+        let gDriveFileId = localStorage.getItem('gst_drive_file_id');
+        let syncTimeout = null;
+
+        const currentSystemDate = new Date();
+        const currentYearInt = currentSystemDate.getFullYear();
+        const currentMonthInt = currentSystemDate.getMonth() + 1;
+        const currentFyStartYear = currentMonthInt <= 3 ? currentYearInt - 1 : currentYearInt;
+        
+        let activeTargetPeriod = `${currentYearInt}-${currentMonthInt.toString().padStart(2, '0')}`;
+
+        const FY_MONTHS = [
+            { name: "Apr", offset: 0, monthStr: "04" }, { name: "May", offset: 0, monthStr: "05" },
+            { name: "Jun", offset: 0, monthStr: "06" }, { name: "Jul", offset: 0, monthStr: "07" },
+            { name: "Aug", offset: 0, monthStr: "08" }, { name: "Sep", offset: 0, monthStr: "09" },
+            { name: "Oct", offset: 0, monthStr: "10" }, { name: "Nov", offset: 0, monthStr: "11" },
+            { name: "Dec", offset: 0, monthStr: "12" }, { name: "Jan", offset: 1, monthStr: "01" },
+            { name: "Feb", offset: 1, monthStr: "02" }, { name: "Mar", offset: 1, monthStr: "03" }
+        ];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            generateFYDropdown();
+            renderFinancialYearCalendar();
+            renderMasterDashboard();
+        });
+
+        function saveDatabase() {
+            localStorage.setItem('gst_beast_db', JSON.stringify(db));
+            if (gDriveAccessToken) {
+                document.getElementById('cloud-status').innerHTML = "⏳ Saving...";
+                clearTimeout(syncTimeout);
+                syncTimeout = setTimeout(performCloudSync, 2500); 
+            }
+        }
+
+        function initializeGoogleAuth() {
+            if (GOOGLE_CLIENT_ID === "YOUR_CLIENT_ID_HERE" || !GOOGLE_CLIENT_ID) {
+                return alert("Setup Error: You need to paste your Client ID into the code at line 335.");
+            }
+            try {
+                const tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'https://www.googleapis.com/auth/drive.file',
+                    callback: (response) => {
+                        if (response.error !== undefined) throw (response);
+                        gDriveAccessToken = response.access_token;
+                        document.getElementById('cloud-status').innerHTML = "🟢 Drive Connected";
+                        performCloudSync(); 
+                    },
+                });
+                tokenClient.requestAccessToken();
+            } catch(err) {
+                alert("Google Auth failed to load. Check your internet connection.");
+            }
+        }
+
+        async function performCloudSync() {
+            if (!gDriveAccessToken) return;
+            document.getElementById('cloud-status').innerHTML = "⏳ Syncing...";
+            const fileContent = JSON.stringify(db, null, 2);
+            try {
+                if (gDriveFileId) {
+                    let res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${gDriveFileId}?uploadType=media`, {
+                        method: 'PATCH',
+                        headers: { 'Authorization': `Bearer ${gDriveAccessToken}`, 'Content-Type': 'application/json' },
+                        body: fileContent
+                    });
+                    if (res.status === 404) {
+                        gDriveFileId = null;
+                        localStorage.removeItem('gst_drive_file_id');
+                        return performCloudSync();
+                    }
+                    if (!res.ok) throw new Error("Cloud update failed.");
+                } else {
+                    const metadata = { name: 'GST_Master_Backup.json', mimeType: 'application/json' };
+                    const form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                    form.append('file', new Blob([fileContent], { type: 'application/json' }));
+                    let res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${gDriveAccessToken}` },
+                        body: form
+                    });
+                    let data = await res.json();
+                    if(data.id) {
+                        gDriveFileId = data.id;
+                        localStorage.setItem('gst_drive_file_id', data.id);
+                    }
+                }
+                let d = new Date();
+                let timeStr = d.getHours() + ':' + d.getMinutes().toString().padStart(2, '0');
+                document.getElementById('cloud-status').innerHTML = `🟢 Saved ${timeStr}`;
+            } catch (err) {
+                console.error(err);
+                document.getElementById('cloud-status').innerHTML = "🔴 Sync Failed";
+                gDriveAccessToken = null; 
+            }
+        }
+
+        function generateFYDropdown() {
+            const select = document.getElementById('global-fy-select');
+            select.innerHTML = ''; 
+            for (let y = 2017; y <= currentYearInt + 50; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = `FY ${y} - ${(y + 1).toString().substring(2)}`;
+                if (y === currentFyStartYear) opt.selected = true;
+                select.appendChild(opt);
+            }
+        }
+
+        function renderFinancialYearCalendar() {
+            const startYear = parseInt(document.getElementById('global-fy-select').value);
+            const matrixContainer = document.getElementById('fy-calendar-matrix');
+            matrixContainer.innerHTML = '';
+
+            FY_MONTHS.forEach(m => {
+                const calculatedYear = startYear + m.offset;
+                const dynamicPeriodKey = `${calculatedYear}-${m.monthStr}`;
+                
+                let hasPendingReturns = false;
+                db.forEach(client => {
+                    const h = client.history[dynamicPeriodKey];
+                    if (h && (h.r1 === 'Pending' || h.r3b === 'Pending')) hasPendingReturns = true;
+                });
+
+                const block = document.createElement('div');
+                block.className = `fy-month-block ${dynamicPeriodKey === activeTargetPeriod ? 'active-month' : ''}`;
+                block.onclick = () => { activeTargetPeriod = dynamicPeriodKey; renderFinancialYearCalendar(); renderMasterDashboard(); clearForm(); };
+                
+                block.innerHTML = `<div><strong>${m.name} ${calculatedYear.toString().substring(2)}</strong></div>
+                                   <div class="micro-indicator-row"><span class="${hasPendingReturns ? 'dot-pending' : 'dot-clean'}">${hasPendingReturns ? '● Action' : '● Clean'}</span></div>`;
+                matrixContainer.appendChild(block);
+            });
+        }
+
+        function handleFYChange() {
+            activeTargetPeriod = `${document.getElementById('global-fy-select').value}-04`; 
+            renderFinancialYearCalendar();
+            renderMasterDashboard();
+            clearForm();
+        }
+
+        function validateGSTIN() {
+            const input = document.getElementById('client-gstin');
+            input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+            const errorDiv = document.getElementById('gstin-error');
+
+            if (input.value.length === 0) {
+                errorDiv.style.display = 'none';
+                input.style.borderColor = 'var(--border)';
+                return false;
+            } else if (!gstinRegex.test(input.value)) {
+                errorDiv.style.display = 'block';
+                input.style.borderColor = 'var(--danger)';
+                return false;
+            } else {
+                errorDiv.style.display = 'none';
+                input.style.borderColor = 'var(--success)';
+                return true;
+            }
+        }
+
+        function clearForm() {
+            ['editing-client-id','client-name','client-gstin','portal-user','portal-pass','out-igst','out-cgst','out-sgst',
+             'rcm-igst','rcm-cgst','rcm-sgst','itc-igst','itc-cgst','itc-sgst',
+             'itc-2b-igst','itc-2b-cgst','itc-2b-sgst','month-notes', 'client-fee'].forEach(id => document.getElementById(id).value = '');
+            
+            document.getElementById('client-scheme').value = 'Monthly';
+            document.getElementById('fee-status').value = 'Due';
+            document.getElementById('client-gstin').style.borderColor = 'var(--border)';
+            document.getElementById('gstin-error').style.display = 'none';
+            document.getElementById('form-title').textContent = "Client Registration";
+            document.getElementById('save-btn').textContent = "Save Records";
+            document.getElementById('cancel-edit-btn').style.display = 'none';
+        }
+
+        function ensureMonthStructureInitialized(target, periodKey) {
+            if (!target.history) target.history = {};
+            if (!target.history[periodKey]) {
+                target.history[periodKey] = {
+                    outIgst: 0, outCgst: 0, outSgst: 0,
+                    rcmIgst: 0, rcmCgst: 0, rcmSgst: 0,
+                    itcIgst: 0, itcCgst: 0, itcSgst: 0,
+                    itc2bIgst: 0, itc2bCgst: 0, itc2bSgst: 0, notes: "",
+                    r1: "Pending", r1Date: "", r3b: "Pending", r3bDate: "", waived: false,
+                    feeAmount: 0, feeStatus: "Due"
+                };
+            } else {
+                if (target.history[periodKey].itc2bIgst === undefined) {
+                    // Legacy migration from single 'itc2b' field
+                    target.history[periodKey].itc2bIgst = 0;
+                    target.history[periodKey].itc2bCgst = target.history[periodKey].itc2b || 0;
+                    target.history[periodKey].itc2bSgst = target.history[periodKey].itc2b || 0;
+                }
+                if (target.history[periodKey].feeAmount === undefined) target.history[periodKey].feeAmount = 0;
+                if (target.history[periodKey].feeStatus === undefined) target.history[periodKey].feeStatus = "Due";
+            }
+        }
+
+        function processClientSubmission() {
+            const id = document.getElementById('editing-client-id').value;
+            const name = document.getElementById('client-name').value.trim();
+            const gstin = document.getElementById('client-gstin').value.trim();
+            
+            if (!name) return alert("Trade Name is required.");
+            if (!validateGSTIN()) return alert("Please enter a valid 15-digit alphanumeric GSTIN.");
+
+            const payload = {
+                outIgst: parseFloat(document.getElementById('out-igst').value) || 0,
+                outCgst: parseFloat(document.getElementById('out-cgst').value) || 0,
+                outSgst: parseFloat(document.getElementById('out-sgst').value) || 0,
+                rcmIgst: parseFloat(document.getElementById('rcm-igst').value) || 0,
+                rcmCgst: parseFloat(document.getElementById('rcm-cgst').value) || 0,
+                rcmSgst: parseFloat(document.getElementById('rcm-sgst').value) || 0,
+                itcIgst: parseFloat(document.getElementById('itc-igst').value) || 0,
+                itcCgst: parseFloat(document.getElementById('itc-cgst').value) || 0, 
+                itcSgst: parseFloat(document.getElementById('itc-sgst').value) || 0, 
+                itc2bIgst: parseFloat(document.getElementById('itc-2b-igst').value) || 0,
+                itc2bCgst: parseFloat(document.getElementById('itc-2b-cgst').value) || 0,
+                itc2bSgst: parseFloat(document.getElementById('itc-2b-sgst').value) || 0,
+                notes: document.getElementById('month-notes').value.trim(),
+                feeAmount: parseFloat(document.getElementById('client-fee').value) || 0,
+                feeStatus: document.getElementById('fee-status').value || "Due",
+                r1: "Pending", r1Date: "", r3b: "Pending", r3bDate: "", waived: false
+            };
+
+            if (id) {
+                let target = db.find(c => c.id === id);
+                if (target) {
+                    target.name = name; 
+                    target.gstin = gstin; 
+                    target.scheme = document.getElementById('client-scheme').value; 
+                    target.user = document.getElementById('portal-user').value.trim();
+                    target.pass = document.getElementById('portal-pass').value.trim();
+                    
+                    ensureMonthStructureInitialized(target, activeTargetPeriod);
+                    payload.r1 = target.history[activeTargetPeriod].r1; 
+                    payload.r1Date = target.history[activeTargetPeriod].r1Date;
+                    payload.r3b = target.history[activeTargetPeriod].r3b; 
+                    payload.r3bDate = target.history[activeTargetPeriod].r3bDate;
+                    payload.waived = target.history[activeTargetPeriod].waived || false;
+                    
+                    target.history[activeTargetPeriod] = payload;
+                }
+            } else {
+                db.push({ id: Date.now().toString(), name, gstin, scheme: document.getElementById('client-scheme').value, user: document.getElementById('portal-user').value.trim(), pass: document.getElementById('portal-pass').value.trim(), history: { [activeTargetPeriod]: payload } });
+            }
+
+            saveDatabase();
+            clearForm(); renderFinancialYearCalendar(); renderMasterDashboard();
+        }
+
+        function triggerInlineEdit(id) {
+            const target = db.find(c => c.id === id);
+            if (!target) return;
+            ensureMonthStructureInitialized(target, activeTargetPeriod);
+            const data = target.history[activeTargetPeriod];
+
+            document.getElementById('editing-client-id').value = target.id;
+            document.getElementById('client-name').value = target.name;
+            document.getElementById('client-gstin').value = target.gstin;
+            document.getElementById('client-scheme').value = target.scheme || 'Monthly';
+            document.getElementById('portal-user').value = target.user || '';
+            document.getElementById('portal-pass').value = target.pass || '';
+            
+            ['out','rcm','itc'].forEach(prefix => {
+                ['igst','cgst','sgst'].forEach(tax => {
+                    const key = prefix + tax.charAt(0).toUpperCase() + tax.slice(1);
+                    document.getElementById(`${prefix}-${tax}`).value = data[key] || '';
+                });
+            });
+            document.getElementById('itc-2b-igst').value = data.itc2bIgst || '';
+            document.getElementById('itc-2b-cgst').value = data.itc2bCgst || '';
+            document.getElementById('itc-2b-sgst').value = data.itc2bSgst || '';
+            
+            document.getElementById('month-notes').value = data.notes || '';
+            document.getElementById('client-fee').value = data.feeAmount || '';
+            document.getElementById('fee-status').value = data.feeStatus || 'Due';
+
+            validateGSTIN(); 
+            document.getElementById('form-title').textContent = "Modify Client";
+            document.getElementById('save-btn').textContent = "Update Records";
+            document.getElementById('cancel-edit-btn').style.display = 'block';
+        }
+
+        function toggleReturnStatus(id, type) {
+            const target = db.find(c => c.id === id);
+            if (!target) return;
+            
+            ensureMonthStructureInitialized(target, activeTargetPeriod);
+            const isFiled = target.history[activeTargetPeriod][type] === 'Filed';
+            target.history[activeTargetPeriod][type] = isFiled ? 'Pending' : 'Filed';
+            
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+
+            if (!isFiled && !target.history[activeTargetPeriod][type + 'Date']) {
+                target.history[activeTargetPeriod][type + 'Date'] = todayStr;
+            } else if (isFiled) {
+                target.history[activeTargetPeriod][type + 'Date'] = '';
+            }
+
+            if (target.scheme === 'QRMP' && !isFiled) {
+                const parsedParts = activeTargetPeriod.split('-');
+                let targetYearStr = parsedParts[0];
+                let targetMonthStr = parsedParts[1];
+                let isM3 = ['06','09','12','03'].includes(targetMonthStr);
+
+                if (isM3) {
+                    let m1, m2;
+                    if (targetMonthStr === '06') { m1 = '04'; m2 = '05'; }
+                    else if (targetMonthStr === '09') { m1 = '07'; m2 = '08'; }
+                    else if (targetMonthStr === '12') { m1 = '10'; m2 = '11'; }
+                    else if (targetMonthStr === '03') { m1 = '01'; m2 = '02'; }
+
+                    [ `${targetYearStr}-${m1}`, `${targetYearStr}-${m2}` ].forEach(p => {
+                        ensureMonthStructureInitialized(target, p);
+                        if (target.history[p][type] !== 'Filed') {
+                            target.history[p][type] = 'Filed';
+                            target.history[p][type + 'Date'] = todayStr;
+                            target.history[p].waived = true; 
+                        }
+                    });
+                }
+            }
+            saveDatabase();
+            renderFinancialYearCalendar();
+            renderMasterDashboard();
+        }
+
+        function updateFilingDate(id, type, newDate) {
+            const target = db.find(c => c.id === id);
+            if (target) {
+                ensureMonthStructureInitialized(target, activeTargetPeriod);
+                target.history[activeTargetPeriod][type + 'Date'] = newDate;
+                saveDatabase();
+                renderMasterDashboard();
+            }
+        }
+
+        function toggleWaiver(id) {
+            const target = db.find(c => c.id === id);
+            if (target) {
+                ensureMonthStructureInitialized(target, activeTargetPeriod);
+                target.history[activeTargetPeriod].waived = !target.history[activeTargetPeriod].waived;
+                saveDatabase();
+                renderMasterDashboard();
+            }
+        }
+
+        function toggleFeeStatus(id) {
+            const target = db.find(c => c.id === id);
+            if (target) {
+                ensureMonthStructureInitialized(target, activeTargetPeriod);
+                target.history[activeTargetPeriod].feeStatus = target.history[activeTargetPeriod].feeStatus === 'Paid' ? 'Due' : 'Paid';
+                saveDatabase();
+                renderMasterDashboard();
+            }
+        }
+
+        function purgeClientProfile(id) {
+            if (confirm("Delete client permanently?")) {
+                db = db.filter(c => c.id !== id);
+                saveDatabase();
+                renderFinancialYearCalendar(); renderMasterDashboard();
+            }
+        }
+
+        // --- NEW: Recursive Engine to find previous month's opening ITC balance ---
+        function calculateCumulativeITC(client, targetPeriod) {
+            let periods = Object.keys(client.history).sort();
+            let currentIgst = 0, currentCgst = 0, currentSgst = 0;
+            
+            for (let p of periods) {
+                if (p >= targetPeriod) break; 
+                let d = client.history[p];
+                
+                let poolIgst = currentIgst + (d.itcIgst||0);
+                let poolCgst = currentCgst + (d.itcCgst||0);
+                let poolSgst = currentSgst + (d.itcSgst||0);
+                
+                let outIgst = d.outIgst||0, outCgst = d.outCgst||0, outSgst = d.outSgst||0;
+                
+                // GST Set-off Rules
+                if (poolIgst > 0) { let off = Math.min(poolIgst, outIgst); poolIgst -= off; outIgst -= off; }
+                if (poolIgst > 0) { let off = Math.min(poolIgst, outCgst); poolIgst -= off; outCgst -= off; }
+                if (poolIgst > 0) { let off = Math.min(poolIgst, outSgst); poolIgst -= off; outSgst -= off; }
+
+                if (poolCgst > 0) { let off = Math.min(poolCgst, outCgst); poolCgst -= off; outCgst -= off; }
+                if (poolCgst > 0) { let off = Math.min(poolCgst, outIgst); poolCgst -= off; outIgst -= off; }
+
+                if (poolSgst > 0) { let off = Math.min(poolSgst, outSgst); poolSgst -= off; outSgst -= off; }
+                if (poolSgst > 0) { let off = Math.min(poolSgst, outIgst); poolSgst -= off; outIgst -= off; }
+                
+                currentIgst = poolIgst; currentCgst = poolCgst; currentSgst = poolSgst;
+            }
+            return { igst: currentIgst, cgst: currentCgst, sgst: currentSgst };
+        }
+
+        function computeTaxEngine(data, r3bDueDate, openingItc) {
+            let outIgst = data.outIgst||0, outCgst = data.outCgst||0, outSgst = data.outSgst||0;
+            let rcmIgst = data.rcmIgst||0, rcmCgst = data.rcmCgst||0, rcmSgst = data.rcmSgst||0;
+            
+            let poolIgst = openingItc.igst + (data.itcIgst||0);
+            let poolCgst = openingItc.cgst + (data.itcCgst||0);
+            let poolSgst = openingItc.sgst + (data.itcSgst||0);
+            
+            let itc2bTotal = (data.itc2bIgst||0) + (data.itc2bCgst||0) + (data.itc2bSgst||0);
+            let itcClaimedTotal = (data.itcIgst||0) + (data.itcCgst||0) + (data.itcSgst||0);
+            let reconDiff = itcClaimedTotal - itc2bTotal;
+
+            // GST Set-off Rules
+            if (poolIgst > 0) { let off = Math.min(poolIgst, outIgst); poolIgst -= off; outIgst -= off; }
+            if (poolIgst > 0) { let off = Math.min(poolIgst, outCgst); poolIgst -= off; outCgst -= off; }
+            if (poolIgst > 0) { let off = Math.min(poolIgst, outSgst); poolIgst -= off; outSgst -= off; }
+
+            if (poolCgst > 0) { let off = Math.min(poolCgst, outCgst); poolCgst -= off; outCgst -= off; }
+            if (poolCgst > 0) { let off = Math.min(poolCgst, outIgst); poolCgst -= off; outIgst -= off; }
+
+            if (poolSgst > 0) { let off = Math.min(poolSgst, outSgst); poolSgst -= off; outSgst -= off; }
+            if (poolSgst > 0) { let off = Math.min(poolSgst, outIgst); poolSgst -= off; outIgst -= off; }
+
+            let totalCash = outIgst + outCgst + outSgst + rcmIgst + rcmCgst + rcmSgst;
+            let carryCredit = poolIgst + poolCgst + poolSgst;
+            
+            let lateFee = 0, interest = 0, delayDays = 0;
+            let nowObj = new Date();
+            nowObj.setHours(23, 59, 59, 999); 
+            
+            if (data.r3b === 'Filed' && data.r3bDate) {
+                let fileDateObj = new Date(data.r3bDate);
+                fileDateObj.setHours(23, 59, 59, 999);
+                if (fileDateObj > r3bDueDate) delayDays = Math.floor((fileDateObj - r3bDueDate) / (1000 * 60 * 60 * 24));
+            } else if (data.r3b === 'Pending') {
+                if (nowObj > r3bDueDate) delayDays = Math.floor((nowObj - r3bDueDate) / (1000 * 60 * 60 * 24));
+            }
+
+            if (delayDays > 0) {
+                let isNil = ((data.outIgst||0)+(data.outCgst||0)+(data.outSgst||0)+(data.rcmIgst||0)+(data.rcmCgst||0)+(data.rcmSgst||0)) === 0;
+                lateFee = delayDays * (isNil ? 20 : 50);
+                if (totalCash > 0) interest = Math.round(totalCash * 0.18 * (delayDays / 365));
+            }
+
+            if (data.waived) { lateFee = 0; interest = 0; }
+            return { totalCash, carryCredit, reconDiff, lateFee, interest, delayDays };
+        }
+
+        function triggerWhatsAppBroadcast(id, r1Label, r3bLabel) {
+            const client = db.find(c => c.id === id);
+            if (!client) return;
+            ensureMonthStructureInitialized(client, activeTargetPeriod);
+            
+            const parsedParts = activeTargetPeriod.split('-');
+            let targetYear = parseInt(parsedParts[0]);
+            let targetMonthIndex = parseInt(parsedParts[1]); 
+
+            let isM3 = ['06','09','12','03'].includes(parsedParts[1]);
+            let r3bDueDay = (client.scheme === 'QRMP' && !isM3) ? 25 : (client.scheme === 'QRMP' && isM3 ? 22 : 20);
+
+            let dueMonthIndex = targetMonthIndex + 1;
+            let dueYear = targetYear;
+            if (dueMonthIndex > 12) { dueMonthIndex = 1; dueYear++; }
+            let r3bDueDate = new Date(dueYear, dueMonthIndex - 1, r3bDueDay, 23, 59, 59);
+
+            const data = client.history[activeTargetPeriod];
+            const opItc = calculateCumulativeITC(client, activeTargetPeriod);
+            const net = computeTaxEngine(data, r3bDueDate, opItc);
+            
+            let targetMonthLabel = FY_MONTHS.find(m => m.monthStr === parsedParts[1])?.name || "";
+            let fullPeriodString = `${targetMonthLabel} ${parsedParts[0]}`;
+            
+            let missingTracks = [];
+            if (data.r1 === 'Pending') missingTracks.push(r1Label);
+            if (data.r3b === 'Pending') missingTracks.push(r3bLabel);
+
+            if (missingTracks.length === 0 && (data.feeAmount === 0 || data.feeStatus === 'Paid')) {
+                alert("This account is fully completed and fees are cleared for the active period.");
+                return;
+            }
+
+            let textBlob = `Dear ${client.name},\n\nThis is an automated compliance update for your GST account regarding the *${fullPeriodString}* tax interval.\n`;
+            
+            if (missingTracks.length > 0) {
+                textBlob += `\n⚠️ *Pending Filings:* ${missingTracks.join(' & ')}`;
+                if (net.totalCash > 0) textBlob += `\n💵 *Estimated Cash Outflow:* ₹${net.totalCash.toLocaleString('en-IN')}`;
+            }
+
+            let cumulativeDebt = net.totalCash + net.lateFee + net.interest;
+            if (cumulativeDebt > net.totalCash && !data.waived) {
+                textBlob += `\n🚨 *Accumulated Interest/Late Penalties:* ₹${(net.lateFee + net.interest).toLocaleString('en-IN')}`;
+                textBlob += `\n📊 *Total Tax Balance Owed:* ₹${cumulativeDebt.toLocaleString('en-IN')}`;
+            }
+
+            if (data.feeAmount > 0 && data.feeStatus === 'Due') {
+                textBlob += `\n\n💼 *Professional Service Fee Due:* ₹${data.feeAmount.toLocaleString('en-IN')}`;
+            }
+
+            textBlob += `\n\nPlease submit your clearance confirmations and pending payments immediately to ensure smooth operations.\n\nBest Regards,\nTax Compliance Desk`;
+            
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(textBlob)}`, '_blank');
+        }
+
+        function renderMasterDashboard() {
+            const search = document.getElementById('search-bar').value.toLowerCase();
+            const filterType = document.getElementById('status-filter').value;
+            const tbody = document.getElementById('table-body');
+            
+            const parsedParts = activeTargetPeriod.split('-');
+            let targetYear = parseInt(parsedParts[0]);
+            let targetMonthIndex = parseInt(parsedParts[1]); 
+            let targetMonthStr = parsedParts[1];
+
+            let dueMonthIndex = targetMonthIndex + 1;
+            let dueYear = targetYear;
+            if (dueMonthIndex > 12) { dueMonthIndex = 1; dueYear++; }
+            let dueMonthName = FY_MONTHS.find(m => parseInt(m.monthStr) === dueMonthIndex)?.name || "";
+            
+            document.getElementById('current-view-badge').textContent = FY_MONTHS.find(m => m.monthStr === targetMonthStr)?.name + " " + targetYear;
+
+            let now = new Date();
+            tbody.innerHTML = '';
+            let totalAccounts = 0, r1PendingCount = 0, r3bPendingCount = 0, aggregateCashNeeded = 0, aggregateUncollectedFees = 0;
+
+            db.forEach(client => {
+                ensureMonthStructureInitialized(client, activeTargetPeriod);
+                const data = client.history[activeTargetPeriod];
+                const openingBal = calculateCumulativeITC(client, activeTargetPeriod);
+                
+                let isM3 = ['06','09','12','03'].includes(targetMonthStr);
+                let r1Label = "GSTR-1", r3bLabel = "GSTR-3B", r1DueDay = 11, r3bDueDay = 20;
+
+                if (client.scheme === 'QRMP') {
+                    if (!isM3) { r1Label = "IFF (Opt)"; r1DueDay = 13; r3bLabel = "PMT-06"; r3bDueDay = 25; } 
+                    else { r1Label = "Q-GSTR-1"; r1DueDay = 13; r3bLabel = "Q-GSTR-3B"; r3bDueDay = 22; }
+                }
+
+                let clientR1DueDate = new Date(dueYear, dueMonthIndex - 1, r1DueDay, 23, 59, 59);
+                let clientR3bDueDate = new Date(dueYear, dueMonthIndex - 1, r3bDueDay, 23, 59, 59);
+
+                const net = computeTaxEngine(data, clientR3bDueDate, openingBal);
+
+                if (filterType === 'R1_PENDING' && data.r1 !== 'Pending') return;
+                if (filterType === '3B_PENDING' && data.r3b !== 'Pending') return;
+                if (filterType === 'CASH_LIABLE' && net.totalCash <= 0) return;
+                if (filterType === 'FEE_DUE' && (data.feeAmount === 0 || data.feeStatus === 'Paid')) return;
+                if (!client.name.toLowerCase().includes(search) && !client.gstin.toLowerCase().includes(search)) return;
+
+                totalAccounts++;
+                if (data.r1 === 'Pending') r1PendingCount++;
+                if (data.r3b === 'Pending') r3bPendingCount++;
+                aggregateCashNeeded += net.totalCash + net.lateFee + net.interest;
+                if (data.feeAmount > 0 && data.feeStatus === 'Due') aggregateUncollectedFees += data.feeAmount;
+
+                let has2B = (data.itc2bIgst||0)+(data.itc2bCgst||0)+(data.itc2bSgst||0) > 0;
+                let reconHtml = "";
+                if (has2B) {
+                    if (net.reconDiff > 0) reconHtml = `<div class="recon-alert" style="background:rgba(239,68,68,0.2); color:var(--danger);">⚠️ ITC Exceeds 2B by ₹${net.reconDiff.toLocaleString('en-IN')}</div>`;
+                    else reconHtml = `<div class="recon-alert" style="background:rgba(16,185,129,0.2); color:var(--success);">✅ 2B Matched/Safe</div>`;
+                }
+
+                let penaltyHtml = "";
+                if (net.delayDays > 0) {
+                    if (data.waived) {
+                        penaltyHtml = `<div style="font-size:0.7rem; color:var(--success); border:1px solid var(--success); border-radius:4px; padding:4px; margin-top:6px;"><strong>✅ Penalty Waived</strong><br><button class="btn-inline btn-waiver" onclick="toggleWaiver('${client.id}')">Undo Waiver</button></div>`;
+                    } else if (net.lateFee > 0 || net.interest > 0) {
+                        penaltyHtml = `<div style="font-size:0.7rem; color:var(--danger); border:1px solid var(--danger); border-radius:4px; padding:4px; margin-top:6px;"><strong>Penalty Active (${net.delayDays} days late)</strong><br>Late Fee: ₹${net.lateFee.toLocaleString('en-IN')} | Int: ₹${net.interest.toLocaleString('en-IN')}<br><button class="btn-inline btn-waiver" onclick="toggleWaiver('${client.id}')">Clear Penalty</button></div>`;
+                    }
+                }
+
+                let r1Alert = "", r3bAlert = "";
+                if (data.r1 === "Pending") {
+                    if (now > clientR1DueDate) r1Alert = `<div style="font-size:0.7rem; color:var(--danger); font-weight:bold; margin-top:2px;">⚠️ OVERDUE</div>`;
+                    else r1Alert = `<div style="font-size:0.7rem; color:var(--warning); margin-top:2px;">⏱ Due ${r1DueDay} ${dueMonthName}</div>`;
+                }
+                if (data.r3b === "Pending") {
+                    if (now > clientR3bDueDate) r3bAlert = `<div style="font-size:0.7rem; color:var(--danger); font-weight:bold; margin-top:2px;">⚠️ OVERDUE</div>`;
+                    else r3bAlert = `<div style="font-size:0.7rem; color:var(--warning); margin-top:2px;">⏱ Due ${r3bDueDay} ${dueMonthName}</div>`;
+                }
+
+                const rcmActive = (data.rcmIgst||0)+(data.rcmCgst||0)+(data.rcmSgst||0) > 0;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <strong style="color:#fff; font-size:0.95rem;">${client.name}</strong> 
+                        <span style="font-size:0.7rem; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; color:var(--primary); font-weight:bold;">${client.scheme || 'Monthly'}</span><br>
+                        <span class="gstin">${client.gstin}</span><br>
+                        <div class="credential-tag">👤 ${client.user || 'N/A'} | 🔑 <span>${client.pass || 'N/A'}</span></div>
+                        ${data.notes ? `<div style="font-size:0.75rem; color:var(--warning); background:rgba(245,158,11,0.05); border:1px dashed rgba(245,158,11,0.2); padding:6px; border-radius:4px; margin-top:6px;">📝 ${data.notes}</div>` : ''}
+                    </td>
+                    <td>
+                        <div class="ledger-box"><strong>Normal:</strong> I:₹${(data.outIgst||0)} | C:₹${(data.outCgst||0)} | S:₹${(data.outSgst||0)}</div>
+                        ${rcmActive ? `<div class="ledger-box" style="margin-top:4px; border-color:var(--danger);"><strong>RCM:</strong> I:₹${(data.rcmIgst||0)} | C:₹${(data.rcmCgst||0)} | S:₹${(data.rcmSgst||0)}</div>` : ''}
+                    </td>
+                    <td>
+                        <div class="ledger-box" style="margin-bottom: 4px;"><strong>Op. Bal:</strong> I:₹${openingBal.igst} | C:₹${openingBal.cgst} | S:₹${openingBal.sgst}</div>
+                        <div class="ledger-box" style="border-color:var(--success);"><strong>Claimed:</strong> I:₹${(data.itcIgst||0)} | C:₹${(data.itcCgst||0)} | S:₹${(data.itcSgst||0)}</div>
+                        ${reconHtml}
+                    </td>
+                    <td>
+                        <div style="margin-bottom:8px;">
+                            <span class="badge ${data.r1 === 'Filed' ? 'badge-filed' : 'badge-pending'}" onclick="toggleReturnStatus('${client.id}', 'r1')">${r1Label}: ${data.r1}</span>
+                            ${data.r1 === 'Filed' ? `<br><input type="date" class="date-edit" value="${data.r1Date || ''}" onchange="updateFilingDate('${client.id}', 'r1', this.value)">` : r1Alert}
+                        </div>
+                        <div>
+                            <span class="badge ${data.r3b === 'Filed' ? 'badge-filed' : 'badge-pending'}" onclick="toggleReturnStatus('${client.id}', 'r3b')">${r3bLabel}: ${data.r3b}</span>
+                            ${data.r3b === 'Filed' ? `<br><input type="date" class="date-edit" value="${data.r3bDate || ''}" onchange="updateFilingDate('${client.id}', 'r3b', this.value)">` : r3bAlert}
+                        </div>
+                        ${penaltyHtml}
+                    </td>
+                    <td>
+                        <div class="ledger-box" style="margin-bottom:6px; border-color:${net.totalCash > 0 ? 'var(--danger)' : 'var(--success)'}">
+                            ${net.totalCash > 0 ? `<span class="text-danger" style="font-weight:bold;">Tax Due: ₹${net.totalCash.toLocaleString('en-IN')}</span>` : `<span class="text-success" style="font-weight:bold;">ITC Carry: ₹${net.carryCredit.toLocaleString('en-IN')}</span>`}
+                            ${net.lateFee+net.interest > 0 && !data.waived ? `<br><span class="text-danger">Penalties: ₹${(net.lateFee+net.interest).toLocaleString('en-IN')}</span>` : ''}
+                        </div>
+                        <div class="ledger-box" style="margin-bottom:6px; border-color:${data.feeStatus === 'Due' ? 'var(--warning)' : 'var(--success)'}">
+                            <strong>Our Fee: ₹${(data.feeAmount||0).toLocaleString('en-IN')}</strong><br>
+                            <span class="badge ${data.feeStatus === 'Paid' ? 'badge-filed' : 'badge-pending'}" style="margin-top:4px;" onclick="toggleFeeStatus('${client.id}')">Status: ${data.feeStatus}</span>
+                        </div>
+                        <div class="action-row">
+                            <button class="btn-inline" onclick="triggerInlineEdit('${client.id}')">Edit</button>
+                            <button class="btn-inline btn-print" onclick="printChallan('${client.id}')">🖨️ PDF</button>
+                            <button class="btn-inline btn-whatsapp" onclick="triggerWhatsAppBroadcast('${client.id}', '${r1Label}', '${r3bLabel}')">📲 WhatsApp</button>
+                            <button class="btn-inline" style="color:var(--danger);" onclick="purgeClientProfile('${client.id}')">Del</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('stat-total').textContent = totalAccounts;
+            document.getElementById('stat-r1').textContent = r1PendingCount;
+            document.getElementById('stat-3b').textContent = r3bPendingCount;
+            document.getElementById('stat-cash').textContent = '₹' + aggregateCashNeeded.toLocaleString('en-IN');
+            document.getElementById('stat-fees').textContent = '₹' + aggregateUncollectedFees.toLocaleString('en-IN');
+        }
+
+        function printChallan(id) {
+            const client = db.find(c => c.id === id);
+            if(!client) return;
+            ensureMonthStructureInitialized(client, activeTargetPeriod);
+            const data = client.history[activeTargetPeriod];
+            
+            const parsedParts = activeTargetPeriod.split('-');
+            let targetYear = parseInt(parsedParts[0]);
+            let targetMonthIndex = parseInt(parsedParts[1]); 
+            let targetMonthStr = parsedParts[1];
+
+            let dueMonthIndex = targetMonthIndex + 1;
+            let dueYear = targetYear;
+            if (dueMonthIndex > 12) { dueMonthIndex = 1; dueYear++; }
+
+            let isM3 = ['06','09','12','03'].includes(targetMonthStr);
+            let r3bDueDay = (client.scheme === 'QRMP' && !isM3) ? 25 : (client.scheme === 'QRMP' && isM3 ? 22 : 20);
+            let r3bDueDate = new Date(dueYear, dueMonthIndex - 1, r3bDueDay, 23, 59, 59);
+            
+            const opItc = calculateCumulativeITC(client, activeTargetPeriod);
+            const net = computeTaxEngine(data, r3bDueDate, opItc);
+
+            document.getElementById('print-name').textContent = client.name;
+            document.getElementById('print-gstin').textContent = client.gstin;
+            
+            let displayLabel = FY_MONTHS.find(m => m.monthStr === parsedParts[1])?.name + " " + parsedParts[0];
+            document.getElementById('print-period').textContent = displayLabel;
+            document.getElementById('print-date').textContent = new Date().toLocaleDateString('en-IN');
+
+            const tbody = document.getElementById('print-table-body');
+            tbody.innerHTML = `
+                <tr><td style="text-align:left;">Opening ITC Balance (From Previous Months)</td><td>${opItc.igst.toLocaleString('en-IN')}</td><td>${opItc.cgst.toLocaleString('en-IN')}</td><td>${opItc.sgst.toLocaleString('en-IN')}</td><td>${(opItc.igst+opItc.cgst+opItc.sgst).toLocaleString('en-IN')}</td></tr>
+                <tr><td style="text-align:left;">Add: ITC Claimed This Month (3B)</td><td>${(data.itcIgst||0).toLocaleString('en-IN')}</td><td>${(data.itcCgst||0).toLocaleString('en-IN')}</td><td>${(data.itcSgst||0).toLocaleString('en-IN')}</td><td>${((data.itcIgst||0)+(data.itcCgst||0)+(data.itcSgst||0)).toLocaleString('en-IN')}</td></tr>
+                <tr style="background:#f1f5f9;"><td style="text-align:left;"><strong>Total ITC Available for Set-off</strong></td><td><strong>${(opItc.igst+(data.itcIgst||0)).toLocaleString('en-IN')}</strong></td><td><strong>${(opItc.cgst+(data.itcCgst||0)).toLocaleString('en-IN')}</strong></td><td><strong>${(opItc.sgst+(data.itcSgst||0)).toLocaleString('en-IN')}</strong></td><td><strong>${(opItc.igst+opItc.cgst+opItc.sgst+(data.itcIgst||0)+(data.itcCgst||0)+(data.itcSgst||0)).toLocaleString('en-IN')}</strong></td></tr>
+                <tr><td style="text-align:left;">Output Tax Liability (Sales)</td><td>${(data.outIgst||0).toLocaleString('en-IN')}</td><td>${(data.outCgst||0).toLocaleString('en-IN')}</td><td>${(data.outSgst||0).toLocaleString('en-IN')}</td><td>${((data.outIgst||0)+(data.outCgst||0)+(data.outSgst||0)).toLocaleString('en-IN')}</td></tr>
+                <tr><td style="text-align:left;">RCM Liability (Mandatory Cash)</td><td>${(data.rcmIgst||0).toLocaleString('en-IN')}</td><td>${(data.rcmCgst||0).toLocaleString('en-IN')}</td><td>${(data.rcmSgst||0).toLocaleString('en-IN')}</td><td>${((data.rcmIgst||0)+(data.rcmCgst||0)+(data.rcmSgst||0)).toLocaleString('en-IN')}</td></tr>
+                <tr class="print-total"><td style="text-align:left;">Subtotal: Taxes Payable in Cash</td><td colspan="3"></td><td>₹${net.totalCash.toLocaleString('en-IN')}</td></tr>
+                <tr><td style="text-align:left;">Late Fees (under Sec 47) ${data.waived ? '(WAIVED)' : ''}</td><td colspan="3"></td><td>₹${net.lateFee.toLocaleString('en-IN')}</td></tr>
+                <tr><td style="text-align:left;">Interest on Cash Liability (18% p.a.) ${data.waived ? '(WAIVED)' : ''}</td><td colspan="3"></td><td>₹${net.interest.toLocaleString('en-IN')}</td></tr>
+                <tr><td style="text-align:left;">Professional Service Fee (Status: ${data.feeStatus||'Due'})</td><td colspan="3"></td><td>₹${(data.feeAmount||0).toLocaleString('en-IN')}</td></tr>
+                <tr class="print-total" style="font-size:1.3em; background:#bae6fd !important;"><td style="text-align:left;">TOTAL AMOUNT TO DEPOSIT</td><td colspan="3"></td><td>₹${(net.totalCash + net.lateFee + net.interest + (data.feeAmount||0)).toLocaleString('en-IN')}</td></tr>
+            `;
+            window.print();
+        }
+
+        function exportMasterWorkbook() {
+            if (db.length === 0) { alert("Nothing to export."); return; }
+            let csv = "Trade Name,GSTIN,Scheme,Period,Total Out,Total RCM,Opening ITC,Claimed ITC,2B IGST,2B CGST,2B SGST,Recon Diff,Total Cash Due,Late Fees,Interest,Step 1 Date,Step 2 Date,Prof Fee,Fee Status\n";
+            
+            const parsedParts = activeTargetPeriod.split('-');
+            let targetYear = parseInt(parsedParts[0]);
+            let targetMonthIndex = parseInt(parsedParts[1]); 
+            let targetMonthStr = parsedParts[1];
+
+            let dueMonthIndex = targetMonthIndex + 1;
+            let dueYear = targetYear;
+            if (dueMonthIndex > 12) { dueMonthIndex = 1; dueYear++; }
+            let isM3 = ['06','09','12','03'].includes(targetMonthStr);
+
+            db.forEach(c => {
+                ensureMonthStructureInitialized(c, activeTargetPeriod);
+                const d = c.history[activeTargetPeriod];
+                
+                let r3bDueDay = (c.scheme === 'QRMP' && !isM3) ? 25 : (c.scheme === 'QRMP' && isM3 ? 22 : 20);
+                let r3bDueDate = new Date(dueYear, dueMonthIndex - 1, r3bDueDay, 23, 59, 59);
+
+                const opItc = calculateCumulativeITC(c, activeTargetPeriod);
+                const net = computeTaxEngine(d, r3bDueDate, opItc);
+                
+                let outSum = (d.outIgst||0)+(d.outCgst||0)+(d.outSgst||0);
+                let rcmSum = (d.rcmIgst||0)+(d.rcmCgst||0)+(d.rcmSgst||0);
+                let opSum = opItc.igst+opItc.cgst+opItc.sgst;
+                let itcSum = (d.itcIgst||0)+(d.itcCgst||0)+(d.itcSgst||0);
+                
+                csv += `"${c.name}","${c.gstin}","${c.scheme || 'Monthly'}","${activeTargetPeriod}",${outSum},${rcmSum},${opSum},${itcSum},${d.itc2bIgst||0},${d.itc2bCgst||0},${d.itc2bSgst||0},${net.reconDiff},${net.totalCash},${net.lateFee},${net.interest},"${d.r1Date || ''}","${d.r3bDate || ''}",${d.feeAmount||0},"${d.feeStatus||'Due'}"\n`;
+            });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            link.setAttribute("download", `GST_Master_${activeTargetPeriod}.csv`);
+            document.body.appendChild(link); link.click(); link.remove();
+        }
+
+        function backupSystemDatabase() {
+            if (db.length === 0) return;
+            const a = document.createElement('a');
+            a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+            a.download = `GST_DB_${currentSystemDate.toISOString().substring(0,10)}.json`;
+            document.body.appendChild(a); a.click(); a.remove();
+        }
+
+        function restoreSystemDatabase(e) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    if (Array.isArray(parsed)) { 
+                        db = parsed; 
+                        saveDatabase(); 
+                        generateFYDropdown(); 
+                        renderFinancialYearCalendar(); 
+                        renderMasterDashboard(); 
+                        alert("Restored!"); 
+                    }
+                } catch(err) { alert("Invalid file."); }
+            };
+            reader.readAsText(e.target.files[0]);
+        }
+    </script>
+</body>
+</html>

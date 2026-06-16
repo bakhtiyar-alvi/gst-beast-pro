@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+    <linearGradient id="g-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+    <linearGradient id="bar-1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="bar-2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+    <linearGradient id="check-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg)" />
+  <path d="M 256 96 A 160 160 0 1 0 416 256 H 320" fill="none" stroke="url(#g-grad)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="156" y="250" width="32" height="86" rx="16" fill="url(#bar-1)" />
+  <rect x="208" y="190" width="32" height="146" rx="16" fill="url(#bar-2)" />
+  <rect x="260" y="130" width="32" height="206" rx="16" fill="url(#bar-1)" />
+  <path d="M 170 300 L 240 360 L 390 180" fill="none" stroke="url(#check-grad)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 170 300 L 240 360 L 390 180" fill="none" stroke="#6ee7b7" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.8" />
+</svg>
