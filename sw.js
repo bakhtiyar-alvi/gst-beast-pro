@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gst-beast-v3.0';
+const CACHE_NAME = 'gst-beast-v2.0';
 const urlsToCache = [
     './',
     './index.html',
