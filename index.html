@@ -371,12 +371,24 @@
         let gDriveFileId = localStorage.getItem('gst_drive_file_id');
         let syncTimeout = null;
 
-        const currentSystemDate = new Date();
+                const currentSystemDate = new Date();
         const currentYearInt = currentSystemDate.getFullYear();
         const currentMonthInt = currentSystemDate.getMonth() + 1;
-        const currentFyStartYear = currentMonthInt <= 3 ? currentYearInt - 1 : currentYearInt;
         
-        let activeTargetPeriod = `${currentYearInt}-${currentMonthInt.toString().padStart(2, '0')}`;
+        // Calculate the previous month for the default view
+        let defaultYear = currentYearInt;
+        let defaultMonth = currentMonthInt - 1;
+        
+        // The January Edge Case: If the result is month 0, wrap to December of the previous year
+        if (defaultMonth === 0) {
+            defaultMonth = 12;
+            defaultYear -= 1;
+        }
+        
+        // Ensure the Financial Year dropdown aligns with the targeted month, not the future month
+        const currentFyStartYear = defaultMonth <= 3 ? defaultYear - 1 : defaultYear;
+        
+        let activeTargetPeriod = `${defaultYear}-${defaultMonth.toString().padStart(2, '0')}`;
 
         const FY_MONTHS = [
             { name: "Apr", offset: 0, monthStr: "04" }, { name: "May", offset: 0, monthStr: "05" },
