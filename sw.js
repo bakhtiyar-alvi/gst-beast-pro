@@ -1,5 +1,5 @@
 // Change this version number EVERY time you update your HTML code!
-const CACHE_NAME = 'gst-beast-v3.0'; 
+const CACHE_NAME = 'gst-beast-v4.2.0'; 
 
 const urlsToCache = [
     './',
