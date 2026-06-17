@@ -5,7 +5,7 @@ const urlsToCache = [
     './',
     './index.html',
     './manifest.json',
-    './icon.png' // (Or icon.svg if you kept the SVG)
+    './icon.svg' // (Or icon.png if you kept the SVG)
 ];
 
 // 1. Install Step
